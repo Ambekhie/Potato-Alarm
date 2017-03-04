@@ -1,4 +1,4 @@
-# Potato-Alarm
+# P-Alarm
 
 - Open Source Project --more than welcome to contribute 
  - github : https://github.com/Btatsaya/Potato-Alarm 

@@ -1,0 +1,137 @@
+#!/bin/bash
+#POTATO_ALARM BASH SCRIPT
+#AUTHOR: AMR MAHMOUD AHMED BEKHIET
+
+#REQUIRED FILE AND DIRECTORY
+INPUT="./in.txt"
+DIRECTORY='/bin/MUSIC'
+
+#SETTING USER TIME INPUT
+>$INPUT
+dialog --title "POTATO-ALARM" \
+--backtitle "ENTER TIME AS FOLLOWING FORMAT :" \
+--inputbox " H : M : am/pm " 8 50 2>$INPUT
+#CANCEL
+if [ ! -s "$INPUT" ]
+then
+	exit 0
+fi
+DATA=$(cat $INPUT)
+IFS=' : ' read -ra TIME <<< $DATA 
+HOUR=${TIME[0]} 
+MINUTE=${TIME[1]}
+AP=${TIME[2]} 
+
+#VALIDATE USER TIME INPUT
+if !(($HOUR >= 1 && $HOUR <= 12 && $MINUTE >= 0 && $MINUTE <= 60)) || [[ ! $AP =~ [apAP][Mm] ]] 
+then
+	notify-send P-Alarm "INVALID TIME FORMAT !"
+	exit 1
+fi
+
+#SETTING USER REPLAY ARGUMENT
+>$INPUT
+dialog --title "POTATO-ALARM" \
+--backtitle "ENTER # OF REPLAYS" \
+--inputbox "" 8 50 2>$INPUT
+#CANCEL
+if [ ! -s "$INPUT" ]
+then
+	exit 0
+fi
+DATA=$(cat $INPUT)
+REPLAY=$DATA #OPTIONAL
+
+#SETTING USER ALARM MUSIC
+>$INPUT
+dialog --title "CHOOSE ALARM MUSIC" --fselect "$DIRECTORY/DEFAULT.mp3" 10 10 2>$INPUT
+#CANCEL
+if [ ! -s "$INPUT" ]
+then
+	exit 0
+fi
+SONG=$(cat $INPUT) #OPTIONAL
+
+#VALIDATE USER OPTIONS INPUT
+if [[ ! ( $SONG =~ [a-zA-Z]* && $REPLAY =~ [0-9]+ ) ]] 
+then
+	notify-send P-Alarm "INVAILD ARGUEMENTS !"
+	exit 1
+fi
+
+#REMOVE INPUT FILE
+rm $INPUT
+
+#SET DEFAULT REPLAY TO #1
+if [ -z "$REPLAY" ]
+then 
+	REPLAY=1
+fi	
+
+
+#LOOK FOR THE CHOOSEN SONG IN MUSIC DIRECTORY
+#FATAL ERRORS : 
+#WHEN MUSIC DIRECTORY DOESNOT EXIST
+#WHEN CHOOSEN MUSIC DOESNOT EXIST
+if [ -d "$DIRECTORY" ]
+then
+	if [ ! -z "$SONG" ]
+	then 
+		if	[ ! -e "$SONG" ]
+		then
+			notify-send P-Alarm "MUSIC NOT FOUND !"
+			exit 1
+		fi		
+	else	
+		SONG='DEFAULT.mp3'
+	fi	
+else
+	notify-send  P-Alarm "ERROR NO MUSIC DIRECTORY EXIST!"	
+	exit 1
+fi
+
+#CALCULATE TIME FOR PC SLEEP
+if (( $(date +%H) > 12 ))
+then 
+	(( HOUR+=12 ))
+	if [[ $AP =~ [Pp][Mm] ]]
+	then 
+		let HOURS_LEFT=$HOUR-$(date +%H)		
+	else
+		let HOURS_LEFT=($HOUR-$(date +%H))+12		
+	fi
+else
+	if [[ $AP =~ [Aa][Mm] ]]
+	then 
+		let HOURS_LEFT=$HOUR-$(date +%H)		
+	else
+		let HOURS_LEFT=($HOUR-$(date +%H))+12		
+	fi	
+fi	
+
+let MINUTES_LEFT=$MINUTE-$(date +%M)	
+let SEC=$HOURS_LEFT*60*60+$MINUTES_LEFT*60
+if (( $SEC < 0 ))
+then
+	notify-send P-Alarm "you are TOO LATE !"
+	exit 1
+fi 
+
+#DESKTOP NOTIFICATION
+notify-send P-Alarm "ALARM IS SET \n $(($SEC/60)) Mins Left"
+dialog --msgbox "SAY GOODNIGHT" 10 50 
+ 
+#SLEEP FOR SPECIFIED # of SECONDS 
+rtcwake -m mem -s $SEC
+
+#AFTER AWAKE MUSIC IS PLAYED
+#DEFAULT MUSIC IS SET IF USER DID NOT SPECIFY ANY
+COUNTER=1
+while (( $REPLAY != 0 ))
+do
+	notify-send -t 1000 P-Alarm "PLAY # $COUNTER"
+	play $SONG
+	((REPLAY--))
+	((COUNTER++))
+done	
+exit 0

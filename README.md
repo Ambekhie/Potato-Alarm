@@ -1,6 +1,7 @@
 # P-Alarm
 
 - Open Source Project --more than welcome to contribute 
+ - This alarm wakes you - and your pc - up at the time you specified
  - github : https://github.com/Btatsaya/Potato-Alarm 
 - run from terminal : 
  - change directory to P-Alarm directory 
